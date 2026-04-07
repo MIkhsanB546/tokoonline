@@ -1,7 +1,6 @@
 @extends('v_layouts.app')
 @section('content')
     <!-- template -->
-
     <!-- STORE -->
     <div id="store">
         <!-- row -->
@@ -16,9 +15,7 @@
                                 <span class="sale">{{ $row->kategori->nama_kategori }}</span>
                             </div>
                             <a href="{{ route('produk.detail', $row->id) }}">
-                                <button class="main-btn quick-view">
-                                    <i class="fa fa-search-plus"></i> Detail Produk
-                                </button>
+                                <button class="main-btn quick-view"><i class="fa fa-search-plus"></i> Detail Produk</button>
                             </a>
                             <img src="{{ asset('storage/img-produk/thumb_md_' . $row->foto) }}" alt="">
                         </div>
@@ -47,6 +44,5 @@
         <!-- /row -->
     </div>
     <!-- /STORE -->
-
     <!-- end template-->
 @endsection

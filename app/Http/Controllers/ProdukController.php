@@ -60,15 +60,15 @@ class ProdukController extends Controller
             $extension = $file->getClientOriginalExtension();
             $originalFileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
             $directory = 'storage/img-produk/';
-            // Simpan gambar asli 
+            // Simpan gambar asli
             $fileName = ImageHelper::uploadAndResize($file, $directory, $originalFileName);
             $validatedData['foto'] = $fileName;
 
-            // create thumbnail 1 (lg) 
+            // create thumbnail 1 (lg)
             $thumbnailLg = 'thumb_lg_' . $originalFileName;
             ImageHelper::uploadAndResize($file, $directory, $thumbnailLg, 800, null);
 
-            // create thumbnail 2 (md) 
+            // create thumbnail 2 (md)
             $thumbnailMd = 'thumb_md_' . $originalFileName;
             ImageHelper::uploadAndResize($file, $directory, $thumbnailMd, 500, 519);
 
@@ -116,7 +116,7 @@ class ProdukController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //ddd($request); 
+        //ddd($request);
         $produk = Produk::findOrFail($id);
         $rules = [
             'nama_produk' => 'required|max:255|unique:produk,nama_produk,' . $id,
@@ -136,7 +136,7 @@ class ProdukController extends Controller
         $validatedData = $request->validate($rules, $messages);
 
         if ($request->file('foto')) {
-            //hapus gambar lama 
+            //hapus gambar lama
             if ($produk->foto) {
                 $oldImagePath = public_path('storage/img-produk/') . $produk->foto;
                 if (file_exists($oldImagePath)) {
@@ -160,7 +160,7 @@ class ProdukController extends Controller
             $originalFileName = date('YmdHis') . '_' . uniqid() . '.' . $extension;
             $directory = 'storage/img-produk/';
 
-            // Simpan gambar asli 
+            // Simpan gambar asli
             $fileName = ImageHelper::uploadAndResize($file, $directory, $originalFileName);
             $validatedData['foto'] = $fileName;
 
@@ -210,7 +210,7 @@ class ProdukController extends Controller
             }
         }
 
-        // Hapus foto produk lainnya di tabel foto_produk 
+        // Hapus foto produk lainnya di tabel foto_produk
         $fotoProduks = FotoProduk::where('produk_id', $id)->get();
         foreach ($fotoProduks as $fotoProduk) {
             $fotoPath = $directory . $fotoProduk->foto;
@@ -224,10 +224,10 @@ class ProdukController extends Controller
         return redirect()->route('backend.produk.index')->with('success', 'Data berhasil dihapus');
     }
 
-    // Method untuk menyimpan foto tambahan 
+    // Method untuk menyimpan foto tambahan
     public function storeFoto(Request $request)
     {
-        // Validasi input 
+        // Validasi input
         $request->validate(['produk_id' => 'required|exists:produk,id', 'foto_produk.*' => 'image|mimes:jpeg,jpg,png,gif|file|max:1024',]);
         if ($request->hasFile('foto_produk')) {
             foreach ($request->file('foto_produk') as $file) {
@@ -267,16 +267,16 @@ class ProdukController extends Controller
             ->with('success', 'Foto berhasil dihapus.');
     }
 
-    // Method untuk Form Laporan Produk 
+    // Method untuk Form Laporan Produk
     public function formProduk()
     {
         return view('backend.v_produk.form', ['judul' => 'Laporan Data Produk',]);
     }
 
-    // Method untuk Cetak Laporan Produk 
+    // Method untuk Cetak Laporan Produk
     public function cetakProduk(Request $request)
     {
-        // Menambahkan aturan validasi 
+        // Menambahkan aturan validasi
         $request->validate([
             'tanggal_awal' => 'required|date',
             'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
@@ -294,6 +294,41 @@ class ProdukController extends Controller
             'tanggalAwal' => $tanggalAwal,
             'tanggalAkhir' => $tanggalAkhir,
             'cetak' => $produk
+        ]);
+    }
+
+    public function detail($id)
+    {
+        $fotoProdukTambahan = FotoProduk::where('produk_id', $id)->get();
+        $detail = Produk::findOrFail($id);
+        $kategori = Kategori::orderBy('nama_kategori', 'desc')->get();
+        return view('v_produk.detail', [
+            'judul' => 'Detail Produk',
+            'kategori' => $kategori,
+            'row' => $detail,
+            'fotoProdukTambahan' => $fotoProdukTambahan
+        ]);
+    }
+
+    public function produkKategori($id)
+    {
+        $kategori = Kategori::orderBy('nama_kategori', 'desc')->get();
+        $produk = Produk::where('kategori_id', $id)->where('status', 1)->orderBy('updated_at', 'desc')->paginate(6);
+        return view('v_produk.produkkategori', [
+            'judul' => 'Filter Kategori',
+            'kategori' => $kategori,
+            'produk' => $produk,
+        ]);
+    }
+
+    public function produkAll()
+    {
+        $kategori = Kategori::orderBy('nama_kategori', 'desc')->get();
+        $produk = Produk::where('status', 1)->orderBy('updated_at', 'desc')->paginate(6);
+        return view('v_produk.index', [
+            'judul' => 'Semua Produk',
+            'kategori' => $kategori,
+            'produk' => $produk,
         ]);
     }
 }
