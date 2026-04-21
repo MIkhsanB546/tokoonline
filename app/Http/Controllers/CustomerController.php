@@ -22,21 +22,21 @@ class CustomerController extends Controller
         try {
             $socialUser = Socialite::driver('google')->user();
             // Cek apakah email sudah terdaftar
-            $registeredUser = User::where('email', $socialUser->email)->first();
+            $registeredUser = User::where('email', $socialUser->getEmail())->first();
             if (!$registeredUser) {
                 // Buat user baru
                 $user = User::create([
-                    'nama' => $socialUser->name,
-                    'email' => $socialUser->email,
-                    'role' => '2', // Role customer
-                    'status' => 1, // Status aktif
-                    'password' => Hash::make('default_password'), // Password default (opsional)
-                    'hp' => '081234567890', // Nomor HP default (opsional)
+                    'nama' => $socialUser->getName(),
+                    'email' => $socialUser->getEmail(),
+                    'role' => '2',
+                    'status' => true,
+                    'password' => Hash::make('default_password'),
+                    'hp' => '081234567890',
                 ]);
                 // Buat data customer
-                Customer::create([
+                $customer = Customer::create([
                     'user_id' => $user->id,
-                    'google_id' => $socialUser->id,
+                    'google_id' => $socialUser->getId(),
                     'google_token' => $socialUser->token
                 ]);
                 // Login pengguna baru
@@ -48,8 +48,7 @@ class CustomerController extends Controller
             // Redirect ke halaman utama
             return redirect()->intended('beranda');
         } catch (\Exception $e) {
-            // Redirect ke halaman utama jika terjadi kesalahan
-            return redirect('/')->with('error', 'Terjadi kesalahan saat login dengan Google.');
+            return redirect('/')->with('error', 'Terjadi kesalahan saat login dengan Google: ' . $e->getMessage());
         }
     }
     public function logout(Request $request)
