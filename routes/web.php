@@ -15,12 +15,18 @@ Route::get('/', function () {
 
 Route::get('backend/beranda', [BerandaController::class, 'berandaBackend'])->name('backend.beranda')->middleware('auth');
 
+// Route untuk login dan logout admin
 Route::get('backend/login', [LoginController::class, 'loginBackend'])->name('backend.login');
 Route::post('backend/login', [LoginController::class, 'authenticateBackend'])->name('backend.login');
 Route::post('backend/logout', [LoginController::class, 'logoutBackend'])->name('backend.logout');
 
+// Route untuk User
 Route::resource('backend/user', UserController::class, ['as' => 'backend'])->middleware('auth');
 
+// Route untuk Customer
+Route::resource('backend/customer', CustomerController::class, ['as' => 'backend'])->middleware('auth');
+
+// Route untuk Kategori dan Produk
 Route::resource('backend/kategori', KategoriController::class, ['as' => 'backend'])->middleware('auth');
 Route::resource('backend/produk', ProdukController::class, ['as' => 'backend'])->middleware('auth');
 
@@ -42,6 +48,15 @@ Route::get('/produk/detail/{id}', [ProdukController::class, 'detail'])->name('pr
 Route::get('/produk/kategori/{id}', [ProdukController::class, 'produkKategori'])->name('produk.kategori');
 Route::get('/produk/all', [ProdukController::class, 'produkAll'])->name('produk.all');
 
+// Group route untuk customer
+Route::middleware('is.customer')->group(function () {
+    // Route untuk menampilkan halaman akun customer
+    Route::get('/customer/akun/{id}', [CustomerController::class, 'akun'])
+        ->name('customer.akun');
+    // Route untuk mengupdate data akun customer
+    Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])
+        ->name('customer.updateakun');
+});
 
 //API Google
 Route::get('/auth/redirect', [CustomerController::class, 'redirect'])->name('auth.redirect');
