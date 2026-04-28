@@ -57,7 +57,7 @@
                 <div class="pull-left">
                     <!-- Logo -->
                     <div class="header-logo">
-                        <a class="logo" href="#">
+                        <a class="logo" href="{{ route('beranda') }}">
                             <img src="{{ asset('image/logo.png') }}" alt="">
                         </a>
                     </div>
@@ -85,7 +85,9 @@
                             <li class="header-account dropdown default-dropdown">
                                 <div class="dropdown-toggle" role="button" data-toggle="dropdown" aria-expanded="true">
                                     <div class="header-btns-icon">
-                                        <i class="fa fa-user-o"></i>
+                                        {{-- <i class="fa fa-user-o"></i> --}}
+                                        <img src="{{ asset('storage/img-customer/' . Auth::user()->foto) }}"
+                                            alt="" width="35px">
                                     </div>
                                     <strong class="text-uppercase">{{ Auth::user()->nama }}<i
                                             class="fa fa-caret-down"></i></strong>
@@ -433,28 +435,20 @@
     <script src="{{ asset('frontend/js/jquery.zoom.min.js') }}"></script>
     <script src="{{ asset('frontend/js/main.js') }}"></script>
 
-    <!-- konfirmasi success-->
-    <!-- @if (session('success'))
-<script>
-    Swal.fire({
-        icon: 'success',
-        title: 'Berhasil!',
-        text: "{{ session('success') }}"
-    });
-</script>
-@endif -->
-    <!-- konfirmasi success End-->
-
-    <!-- konfirmasi error-->
-    <!-- @if (session('error'))
-<script>
-    Swal.fire({
-        icon: 'error',
-        title: 'Gagal!',
-        text: "{{ session('error') }}"
-    });
-</script>
-@endif -->
+    <script>
+        // previewFoto function
+        function previewFoto() {
+            const foto = document.querySelector('input[name="foto"]');
+            const fotoPreview = document.querySelector('.foto-preview');
+            fotoPreview.style.display = 'block';
+            const fotoReader = new FileReader();
+            fotoReader.readAsDataURL(foto.files[0]);
+            fotoReader.onload = function(fotoEvent) {
+                fotoPreview.src = fotoEvent.target.result;
+                fotoPreview.style.width = '100%';
+            }
+        }
+    </script>
 
 </body>
 
