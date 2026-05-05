@@ -21,7 +21,7 @@
                                 </div>
                                 <div class="form-group">
                                     <label>No. HP</label>
-                                    <input type="text" value="{{ $show->hp ?? '' }}" class="form-control" disabled>
+                                    <input type="text" value="{{ $show->user->hp ?? '' }}" class="form-control" disabled>
                                 </div>
                                 <div class="form-group">
                                     <label>Alamat</label>

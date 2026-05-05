@@ -1,8 +1,6 @@
-# TODO: Customer CRUD (reference v_produk)
+# TODO - Fix backend/v_customer/edit.blade.php
 
-1. [✓] Update CustomerController.php - Add create/store/update methods
-2. [ ] Create backend/v_customer/create.blade.php
-3. [ ] Create backend/v_customer/edit.blade.php
-4. [ ] Update backend/v_customer/index.blade.php - Fix edit/delete links
-5. [ ] php artisan view:clear
-6. [ ] Test & complete
+- [x] Analyze files and understand the issue
+- [x] Create plan and get user approval
+- [x] Rewrite backend/v_customer/edit.blade.php with correct customer fields
+- [x] Verify the edit form matches controller expectations

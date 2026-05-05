@@ -73,7 +73,7 @@ class CustomerController extends Controller
 
         $rules = [
             'nama' => 'required|max:255',
-            'email' => "required|email|unique:users,email,{$user->id}",
+            'email' => "required|email|unique:user,email,{$user->id}",
             'hp' => 'required|numeric|digits_between:10,13',
             'alamat' => 'required',
             'pos' => 'required',
@@ -113,7 +113,6 @@ class CustomerController extends Controller
 
         // Update customer specific
         $customer->update([
-            'hp' => $validatedData['hp'],
             'alamat' => $validatedData['alamat'],
             'pos' => $validatedData['pos'],
         ]);

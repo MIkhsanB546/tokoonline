@@ -98,7 +98,7 @@
                                     </li>
                                     <li><a href="#"><i class="fa fa-check"></i> History</a></li>
                                     <li>
-                                        <a href="#"
+                                        <a href="{{ route('logout') }}"
                                             onclick="event.preventDefault(); document.getElementById('keluar-app').submit();"><i
                                                 class="fa fa-power-off"></i> Keluar
                                         </a>
