@@ -8,6 +8,7 @@ use App\Http\Controllers\KategoriController;
 use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\RajaOngkirController;
 
 Route::get('/', function () {
     // return view('welcome');
@@ -58,9 +59,17 @@ Route::middleware('is.customer')->group(function () {
     Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])
         ->name('customer.updateakun');
 
-    // Route untuk menambahkan produk ke keranjang
+    // Route keranjang belanja
     Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
     Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
+    Route::post('cart/update/{id}', [OrderController::class, 'updateCart'])->name('order.updateCart');
+    Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
+    // Ongkir
+    Route::post('select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
+    Route::get('provinces', [OrderController::class, 'getProvinces']);
+    Route::get('cities', [OrderController::class, 'getCities']);
+    Route::post('cost', [OrderController::class, 'getCost']);
+    Route::post('updateongkir', [OrderController::class, 'updateongkir'])->name('order.updateongkir');
 });
 
 //API Google
@@ -68,3 +77,27 @@ Route::get('/auth/redirect', [CustomerController::class, 'redirect'])->name('aut
 Route::get('/auth/google/callback', [CustomerController::class, 'callback'])->name('auth.callback');
 // Logout
 Route::post('/logout', [CustomerController::class, 'logout'])->name('logout');
+
+
+// API RajaOngkir
+
+Route::get('/cek-ongkir', function () {
+    return view('rajaongkir');
+});
+
+// get provinces
+Route::get('/provinces', [RajaOngkirController::class, 'getProvinces']);
+
+// get cities berdasarkan province
+Route::get('/cities/{provinceId}', function ($provinceId) {
+    return app(RajaOngkirController::class)
+        ->getCities(new \Illuminate\Http\Request([
+            'province_id' => $provinceId
+        ]));
+});
+
+// get districts berdasarkan city
+Route::get('/districts/{cityId}', [RajaOngkirController::class, 'getDistricts']);
+
+// cek ongkir
+Route::post('/cost', [RajaOngkirController::class, 'getCost']);
