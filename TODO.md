@@ -1,6 +1,6 @@
-# TODO - Fix backend/v_customer/edit.blade.php
+# TODO - RajaOngkir select_shipping fix
 
-- [x] Analyze files and understand the issue
-- [x] Create plan and get user approval
-- [x] Rewrite backend/v_customer/edit.blade.php with correct customer fields
-- [x] Verify the edit form matches controller expectations
+- [ ] Update `OrderController.php` endpoints (`getProvinces`, `getCities`, `getCost`) to return JSON shape expected by `select_shipping.blade.php`.
+- [ ] Add graceful fallback datasets (static provinces/cities) when RajaOngkir API fails.
+- [ ] Make `select_shipping.blade.php` AJAX handlers defensive and show message if API response format missing.
+- [ ] (After code changes) run a quick Laravel command to ensure routes compile and check for syntax errors.

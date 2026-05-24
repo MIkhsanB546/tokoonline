@@ -10,7 +10,7 @@
             <!-- msgSuccess -->
             @if (session()->has('success'))
                 <div class="alert alert-success alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria- label="Close"><span
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                             aria-hidden="true">&times;</span></button>
                     <strong>{{ session('success') }}</strong>
                 </div>
@@ -19,7 +19,7 @@
             <!-- msgError -->
             @if (session()->has('error'))
                 <div class="alert alert-danger alert-dismissible" role="alert">
-                    <button type="button" class="close" data-dismiss="alert" aria- label="Close"><span
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span
                             aria-hidden="true">&times;</span></button>
                     <strong>{{ session('error') }}</strong>
                 </div>
@@ -63,7 +63,7 @@
                                 <td class="price text-center"><strong>Rp.
                                         {{ number_format($item->harga, 0, ',', '.') }}</strong></td>
                                 <td class="qty text-center">
-                                    <form action="#" method="post">
+                                    <form action="{{ route('order.updateCart', $item->id) }}" method="post">
                                         @csrf
                                         <input type="number" name="quantity" value="{{ $item->quantity }}" min="1"
                                             style="width: 60px;">
@@ -73,7 +73,7 @@
                                 <td class="total text-center"><strong class="primary-color">Rp.
                                         {{ number_format($item->harga * $item->quantity, 0, ',', '.') }}</strong></td>
                                 <td class="text-right">
-                                    <form action="#" method="post">
+                                    <form action="{{ route('order.remove', $item->produk->id) }}" method="post">
                                         @csrf
                                         <button class="main-btn icon-btn"><i class="fa fa-close"></i></button>
                                     </form>
@@ -82,7 +82,7 @@
                         @endforeach
                     </tbody>
                 </table>
-                <form action="#" method="post">
+                <form action="{{ route('order.selectShipping') }}" method="get">
                     @csrf
                     <input type="hidden" name="total_price" value="{{ $totalHarga }}">
                     <input type="hidden" name="total_weight" value="{{ $totalBerat }}">

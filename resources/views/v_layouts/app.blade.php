@@ -75,7 +75,8 @@
                                 <div class="header-btns-icon">
                                     <i class="fa fa-shopping-cart"></i>
                                 </div>
-                                <strong class="text-uppercase">Keranjang</strong>
+                                <strong onclick="window.location='{{ route('order.cart') }}'"
+                                    class="text-uppercase">Keranjang</strong>
                             </a>
                         </li>
                         <!-- /Cart -->
