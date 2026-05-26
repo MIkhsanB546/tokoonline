@@ -67,7 +67,7 @@ Route::middleware('is.customer')->group(function () {
     Route::get('select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
     Route::post('updateongkir', [OrderController::class, 'updateongkir'])->name('order.updateongkir');
     Route::get('select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
-    Route::get('history', [OrderController::class, 'history'])->name('order.history');
+    Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
     Route::post('checkout/{id}', [OrderController::class, 'checkout'])->name('order.checkout');
     // Raja Ongkir
     Route::get('/provinces', [OrderController::class, 'getProvinces']);
