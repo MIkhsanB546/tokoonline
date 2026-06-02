@@ -9,6 +9,7 @@ use App\Http\Controllers\ProdukController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\RajaOngkirController;
+use App\Http\Controllers\RajaOngkirControllerV2;
 
 Route::get('/', function () {
     // return view('welcome');
@@ -85,23 +86,22 @@ Route::post('/logout', [CustomerController::class, 'logout'])->name('logout');
 
 // API RajaOngkir
 
-Route::get('/cek-ongkir', function () {
+Route::get('/cek-rajaongkir', function () {
     return view('rajaongkir');
 });
-
-// get provinces
 Route::get('/provinces', [RajaOngkirController::class, 'getProvinces']);
-
-// get cities berdasarkan province
 Route::get('/cities/{provinceId}', function ($provinceId) {
     return app(RajaOngkirController::class)
         ->getCities(new \Illuminate\Http\Request([
             'province_id' => $provinceId
         ]));
 });
-
-// get districts berdasarkan city
 Route::get('/districts/{cityId}', [RajaOngkirController::class, 'getDistricts']);
-
-// cek ongkir
 Route::post('/cost', [RajaOngkirController::class, 'getCost']);
+
+// cek_raja_ongkir_v2
+Route::get('/cek-ongkir', function () {
+    return view('cek-ongkir');
+});
+Route::get('/ongkir/get-destination', [RajaOngkirControllerV2::class, 'getDestination']);
+Route::post('/ongkir/calculate', [RajaOngkirControllerV2::class, 'calculateOngkir']);
