@@ -15,6 +15,8 @@
     <link rel="stylesheet" type="text/css" href="{{ asset('backend/extra-libs/multicheck/multicheck.css') }}">
     <link href="{{ asset('backend/libs/datatables.net-bs4/css/dataTables.bootstrap4.css') }}" rel="stylesheet">
     <link href="{{ asset('backend/dist/css/style.min.css') }}" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="{{ asset('backend/libs/flot/css/float-chart.css') }}" rel="stylesheet">
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
     <!--[if lt IE 9]>
@@ -197,6 +199,19 @@
                         </li>
 
                         <li class="sidebar-item"> <a class="sidebar-link has-arrow waves-effect waves-dark"
+                                href="javascript:void(0)" aria-expanded="false"><i
+                                    class="mdi mdi-cube-send"></i><span class="hide-menu">Pesanan </span></a>
+                            <ul aria-expanded="false" class="collapse first-level">
+                                <li class="sidebar-item"><a href="{{ route('pesanan.proses') }}"
+                                        class="sidebar-link"><i class="mdi mdi-chevron-right"></i><span
+                                            class="hide-menu"> Proses </span></a></li>
+                                <li class="sidebar-item"><a href="{{ route('pesanan.selesai') }}"
+                                        class="sidebar-link"><i class="mdi mdi-chevron-right"></i><span
+                                            class="hide-menu"> Selesai </span></a></li>
+                            </ul>
+                        </li>
+
+                        <li class="sidebar-item"> <a class="sidebar-link has-arrow waves-effect waves-dark"
                                 href="javascript:void(0)" aria-expanded="false"><i class="mdi mdi-receipt"></i><span
                                     class="hide-menu">Laporan </span></a>
                             <ul aria-expanded="false" class="collapse first-level">
@@ -290,6 +305,15 @@
     <script src="{{ asset('backend/extra-libs/multicheck/datatable-checkbox-init.js') }}"></script>
     <script src="{{ asset('backend/extra-libs/multicheck/jquery.multicheck.js') }}"></script>
     <script src="{{ asset('backend/extra-libs/DataTables/datatables.min.js') }}"></script>
+    <script src="{{ asset('backend/libs/flot/excanvas.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot/jquery.flot.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot/jquery.flot.pie.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot/jquery.flot.time.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot/jquery.flot.stack.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot/jquery.flot.crosshair.js') }}""></script>
+    <script src="{{ asset('backend/libs/flot.tooltip/js/jquery.flot.tooltip.min.js') }}""></script>
+    <script src="{{ asset('backend/dist/js/pages/chart/chart-page-init.js') }}"></script>
+
     <script>
         /****************************************
          *       Basic Table                   *

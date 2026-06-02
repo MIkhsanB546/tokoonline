@@ -2,16 +2,70 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Customer;
-use App\Models\Produk;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Kategori;
+use App\Models\Produk;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\Request;
+use Symfony\Contracts\Service\Attribute\Required;
 use Illuminate\Support\Facades\Http;
+use Midtrans\Snap;
+use Midtrans\Config;
 
 class OrderController extends Controller
 {
+    public function statusProses()
+    {
+        //backend
+        $order = Order::whereIn('status', ['Paid', 'Kirim'])->orderBy('id', 'desc')->get();
+        return view('backend.v_pesanan.proses', [
+            'judul' => 'Pesanan',
+            'subJudul' => 'Pesanan Proses',
+            'index' => $order
+        ]);
+    }
+    public function statusSelesai()
+    {
+        //backend
+        $order = Order::where('status', 'Selesai')->orderBy('id', 'desc')->get();
+        return view('backend.v_pesanan.selesai', [
+            'judul' => 'Pesanan',
+            'subJudul' => 'Pesanan Proses',
+            'judul' => 'Data Transaksi',
+            'index' => $order
+        ]);
+    }
+    public function statusDetail($id)
+    {
+        $order = Order::findOrFail($id);
+        return view('backend.v_pesanan.detail', [
+            'judul' => 'Pesanan',
+            'subJudul' => 'Pesanan Proses',
+            'judul' => 'Data Transaksi',
+            'order' => $order,
+        ]);
+    }
+    public function statusUpdate(Request $request, string $id)
+    {
+        $order = Order::findOrFail($id);
+        $rules = [
+            'alamat' => 'required',
+        ];
+        if ($request->status != $order->status) {
+            $rules['status'] = 'required';
+        }
+        if ($request->noresi != $order->noresi) {
+            $rules['noresi'] = 'required';
+        }
+        if ($request->pos != $order->pos) {
+            $rules['pos'] = 'required';
+        }
+        $validatedData = $request->validate($rules);
+        Order::where('id', $id)->update($validatedData);
+        return redirect()->route('pesanan.proses')->with('success', 'Data berhasil diperbaharui');
+    }
     public function addToCart($id)
     {
         $customer = Customer::where('user_id', Auth::id())->first();
@@ -61,6 +115,37 @@ class OrderController extends Controller
         }
         return redirect()->route('order.cart')->with('success', 'Jumlah produk berhasil diperbarui');
     }
+    public function checkout()
+    {
+        $customer = Customer::where('user_id', Auth::id())->first();
+        $order = Order::where('customer_id', $customer->id)->where('status', 'pending')->first();
+        //kurangi stok
+        if ($order) {
+            foreach ($order->orderItems as $item) {
+                $produk = $item->produk;
+                if ($produk->stok >= $item->quantity) {
+                    $produk->stok -= $item->quantity;
+                    $produk->save();
+                } else {
+                    return redirect()->route('order.cart')->with('error', 'Stok produk ' . $produk->nama_produk . ' tidak mencukupi');
+                }
+            }
+            $order->status = 'completed';
+            $order->save();
+        }
+        return redirect()->route('order.history')->with('success', 'Checkout berhasil');
+    }
+    public function orderHistory()
+    {
+        $customer = Customer::where('user_id', Auth::id())->first();;;
+        // $orders = Order::where('customer_id', $customer->id)->where('status', 'completed')->get();
+        $statuses = ['Paid', 'Kirim', 'Selesai'];
+        $orders = Order::where('customer_id', $customer->id)
+            ->whereIn('status', $statuses)
+            ->orderBy('id', 'desc')
+            ->get();
+        return view('v_order.history', compact('orders'));
+    }
     public function removeFromCart(Request $request, $id)
     {
         $customer = Customer::where('user_id', Auth::id())->first();
@@ -79,41 +164,72 @@ class OrderController extends Controller
         }
         return redirect()->route('order.cart')->with('success', 'Produk berhasil dihapus dari keranjang');
     }
-    // public function selectShipping(Request $request)
-    // {
-    // $customer = Customer::where('user_id', Auth::id())->first();
-    // $order = Order::where('customer_id', $customer->id)->where('status', 'pending')->first();
-    // if (!$order || $order->orderItems->count() == 0) {
-    // return redirect()->route('order.cart')->with('error', 'Keranjang belanja kosong.');
-    // }
-    // return view('v_order.select_shipping', compact('order'));
-    // }
+    // ongkir
+    public function getProvinces()
+    {
+        $response = Http::withHeaders([
+            'key' => env('RAJAONGKIR_API_KEY')
+        ])->get(env('RAJAONGKIR_BASE_URL') . '/province');
+        return response()->json($response->json());
+    }
+    public function getCities(Request $request)
+    {
+        $provinceId = $request->input('province_id');
+        $response = Http::withHeaders([
+            'key' => env('RAJAONGKIR_API_KEY')
+        ])->get(env('RAJAONGKIR_BASE_URL') . '/city', [
+            'province' => $provinceId
+        ]);
+        return response()->json($response->json());
+    }
+    public function getCost(Request $request)
+    {
+        $origin = $request->input('origin');
+        $destination = $request->input('destination');
+        $weight = $request->input('weight');
+        $courier = $request->input('courier');
+        $response = Http::withHeaders([
+            'key' => env('RAJAONGKIR_API_KEY')
+        ])->post(env('RAJAONGKIR_BASE_URL') . '/cost', [
+            'origin' => $origin,
+            'destination' => $destination,
+            'weight' => $weight,
+            'courier' => $courier,
+        ]);
+        return response()->json($response->json());
+    }
+
     public function selectShipping(Request $request)
     {
         $customer = Customer::where('user_id', Auth::id())->first();
-        // Pastikan order dengan status 'pending' ada untuk customer ini
-        $order = Order::where('customer_id', $customer->id)->where('status', 'pending')->first();
-        // Cek apakah order ada
+        $order = Order::where('customer_id', $customer->id)
+            ->where('status', 'pending')
+            ->first();
+
         if (!$order || $order->orderItems->count() == 0) {
-            return redirect()->route('order.cart')->with('error', 'Keranjang belanja kosong.');
+            return redirect()->route('order.cart')
+                ->with('error', 'Keranjang belanja kosong.');
         }
-        // Inisialisasi total
-        $totalHarga = 0;
+
         $totalBerat = 0;
-        // Hitung total harga dan total berat
+        $totalHarga = 0;
+
         foreach ($order->orderItems as $item) {
+            $totalBerat += ($item->produk->berat ?? 0) * $item->quantity;
             $totalHarga += $item->harga * $item->quantity;
-            $totalBerat += $item->produk->berat * $item->quantity;
         }
-        // Kirim total ke view
-        return view('v_order.select_shipping', compact('order', 'totalHarga', 'totalBerat'));
+
+        return view('v_order.select_shipping', compact(
+            'order',
+            'totalBerat',
+            'totalHarga'
+        ));
     }
-    public function updateOngkir(Request $request)
+
+    public function updateongkir(Request $request)
     {
-        $customer = Customer::where('user_id', Auth::id())->first();
+        $customer = Customer::where('user_id', Auth::id())->first();;;
         $order = Order::where('customer_id', $customer->id)->where('status', 'pending')->first();
-        $kota_asal = $request->input('kota_asal');
-        $kota_tujuan = $request->input('kota_tujuan');
         if ($order) {
             // Simpan data ongkir ke dalam order
             $order->kurir = $request->input('kurir');
@@ -124,149 +240,169 @@ class OrderController extends Controller
             $order->alamat = $request->input('alamat') . ', <br>' . $request->input('city_name') . ', <br>' . $request->input('province_name');
             $order->pos = $request->input('pos');
             $order->save();
-            // Simpan ke session flash agar bisa diakses di halaman tujuan
-            return redirect()->route('order.selectpayment')->with('kota_asal', $kota_asal)->with('kota_tujuan', $kota_tujuan);
+            return redirect()->route('order.selectpayment');
         }
         return back()->with('error', 'Gagal menyimpan data ongkir');
-    }
-    public function getDestination(Request $request)
-    {
-        $search = $request->get('search', ''); // default kosong, bisa diketik oleh user
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://rajaongkir.komerce.id/api/v1/destination/domestic-destination?search=' . urlencode($search),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_ENCODING => '',
-            CURLOPT_MAXREDIRS => 10,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
-            CURLOPT_CUSTOMREQUEST => 'GET',
-            CURLOPT_HTTPHEADER => array(
-                'key: ' . env('RAJAONGKIR_API_KEY'),
-            ),
-        ));
-        $response = curl_exec($curl);
-        curl_close($curl);
-        $data = json_decode($response, true);
-        return response()->json($data);
-    }
-    public function calculateOngkir(Request $request)
-    {
-        $origin = $request->input('origin');
-        $destination = $request->input('destination');
-        $weight = $request->input('weight');
-        $courier = $request->input('courier');
-        $postData = http_build_query([
-            'origin' => $origin,
-            'destination' => $destination,
-            'weight' => $weight,
-            'courier' => $courier,
-            'price' => 'lowest'
-        ]);
-        $curl = curl_init();
-        curl_setopt_array($curl, array(
-            CURLOPT_URL => 'https://rajaongkir.komerce.id/api/v1/calculate/domestic-cost',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_POSTFIELDS => $postData,
-            CURLOPT_HTTPHEADER => array(
-                'key: ' . env('RAJAONGKIR_API_KEY'),
-                'Content-Type: application/x-www-form-urlencoded'
-            ),
-        ));
-        $response = curl_exec($curl);
-        $err = curl_error($curl);
-        curl_close($curl);
-        if ($err) {
-            return response()->json(['error' => $err], 500);
-        }
-        return response()->json(json_decode($response, true));
     }
     public function selectPayment()
     {
         $customer = Customer::where('user_id', Auth::id())->first();
         if (!$customer) {
-            return redirect()->route('order.cart')
-                ->with('error', 'Data customer tidak ditemukan.');
+            return redirect()->back()->with('error', 'Data customer tidak ditemukan');
         }
-        $order = Order::where('customer_id', $customer->id)
-            ->where('status', 'pending')
-            ->first();
-        if (!$order) {
-            return redirect()->route('order.cart')
-                ->with('error', 'Keranjang belanja kosong.');
+        $order = Order::where('customer_id', $customer->id)->where('status', 'pending')->first();
+        if ($order) {
+            $order->load('orderItems.produk');
         }
-        $order->load('orderItems.produk');
+        // Pastikan total_price sudah dihitung dengan benar
         $totalHarga = 0;
         foreach ($order->orderItems as $item) {
             $totalHarga += $item->harga * $item->quantity;
         }
+        // Tambahkan biaya ongkir ke total harga
         $grossAmount = $totalHarga + $order->biaya_ongkir;
-        return view('v_order.select_payment', compact(
-            'order',
-            'totalHarga',
-            'grossAmount'
-        ));
+        // Midtrans configuration
+        // Config::$serverKey = config('midtrans.server_key');
+        // Config::$isProduction = false;
+        // Config::$isSanitized = true;
+        // Config::$is3ds = true;
+        // Generate unique order_id
+        $orderId = $order->id . '-' . time();
+        $params = [
+            'transaction_details' => [
+                'order_id' => $orderId,
+                'gross_amount' => (int) $grossAmount, // Pastikan gross_amount adalah integer
+            ],
+            'customer_details' => [
+                'first_name' => $customer->nama,
+                'email' => $customer->email,
+                'phone' => $customer->hp,
+            ],
+        ];
+        // $snapToken = Snap::getSnapToken($params);
+        return view('v_order.select_payment', [
+            'order' => $order,
+            // 'snapToken' => $snapToken,
+        ]);
     }
-
+    public function callback(Request $request)
+    {
+        dd($request->all());
+        $serverKey = config('midtrans.server_key');
+        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
+        if ($hashed == $request->signature_key) {
+            $order = Order::find($request->order_id);
+            if ($order) {
+                $order->update(['status' => 'Paid']);
+            }
+        }
+    }
     public function complete()
     {
-        // Ambil data customer berdasarkan user yang sedang login
         $customer = Customer::where('user_id', Auth::id())->first();
-        if (!$customer) {
-            return redirect()->route('order.cart')
-                ->with('error', 'Data customer tidak ditemukan.');
-        }
-        // Cari order yang masih pending
+
         $order = Order::where('customer_id', $customer->id)
             ->where('status', 'pending')
             ->first();
+
         if (!$order) {
             return redirect()->route('order.cart')
-                ->with('error', 'Keranjang belanja kosong.');
+                ->with('error', 'Order tidak ditemukan');
         }
-        // Format tanggal: tahun-bulan-tanggal
-        $tanggal = date('ymd');
-        // Ambil noresi terakhir
-        $lastOrder = Order::whereDate('created_at', date('Y-m-d'))
-            ->whereNotNull('noresi')
-            ->orderBy('noresi', 'desc')
-            ->first();
-        if ($lastOrder) {
-            $lastNumber = intval(substr($lastOrder->noresi, -3));
-            $newNumber = $lastNumber + 1;
-        } else {
-            $newNumber = 1;
-        }
-        // Format nomor urut
-        $urut = str_pad($newNumber, 3, '0', STR_PAD_LEFT);
-        // Gabungkan noresi
-        $noresi = $tanggal . $urut;
-        // Kurangi stok produk
-        foreach ($order->orderItems as $item) {
-            $produk = Produk::find($item->produk_id);
-            if ($produk) {
-                $produk->stok -= $item->quantity;
-                $produk->save();
-            }
-        }
-        // Update order
+
         $order->status = 'Paid';
-        $order->noresi = $noresi;
+
+        // Generate nomor resi unik
+        $order->noresi = date('ymd') . str_pad($order->id, 3, '0', STR_PAD_LEFT);
+
         $order->save();
+
         return redirect()->route('order.history')
-            ->with('success', 'Checkout berhasil. Nomor resi Anda: ' . $noresi);
+            ->with('success', 'Pembayaran berhasil');
     }
-    public function orderHistory()
+    public function formOrderProses()
     {
-        $customer = Customer::where('user_id', Auth::id())->first();;;
-        // $orders = Order::where('customer_id', $customer->id)->where('status', 'completed')->get();
-        $statuses = ['Paid', 'Kirim', 'Selesai'];
-        $orders = Order::where('customer_id', $customer->id)
-            ->whereIn('status', $statuses)
+        return view('backend.v_pesanan.formproses', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Pesanan Proses',
+        ]);
+    }
+    public function cetakOrderProses(Request $request)
+    {
+        // Menambahkan aturan validasi
+        $request->validate([
+            'tanggal_awal' => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+        ], [
+            'tanggal_awal.required' => 'Tanggal Awal harus diisi.',
+            'tanggal_akhir.required' => 'Tanggal Akhir harus diisi.',
+            'tanggal_akhir.after_or_equal' => 'Tanggal Akhir harus lebih besar atau sama dengan Tanggal Awal.',
+        ]);
+        $tanggalAwal = $request->input('tanggal_awal');
+        $tanggalAkhir = $request->input('tanggal_akhir');
+        $order = Order::whereIn('status', ['Paid', 'Kirim'])->orderBy('id', 'desc')->get();
+        return view('backend.v_pesanan.cetakproses', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Pesanan Proses',
+            'tanggalAwal' => $tanggalAwal,
+            'tanggalAkhir' => $tanggalAkhir,
+            'cetak' => $order
+        ]);
+    }
+    public function formOrderSelesai()
+    {
+        return view('backend.v_pesanan.formselesai', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Pesanan Selesai',
+        ]);
+    }
+    public function cetakOrderSelesai(Request $request)
+    {
+        // Menambahkan aturan validasi
+        $request->validate([
+            'tanggal_awal' => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_awal',
+        ], [
+            'tanggal_awal.required' => 'Tanggal Awal harus diisi.',
+            'tanggal_akhir.required' => 'Tanggal Akhir harus diisi.',
+            'tanggal_akhir.after_or_equal' => 'Tanggal Akhir harus lebih besar atau sama dengan Tanggal Awal.',
+        ]);
+        $tanggalAwal = $request->input('tanggal_awal');
+        $tanggalAkhir = $request->input('tanggal_akhir');
+        $order = Order::where('status', 'Selesai')
+            ->whereBetween('created_at', [$tanggalAwal, $tanggalAkhir])
             ->orderBy('id', 'desc')
             ->get();
-        return view('v_order.history', compact('orders'));
+        $totalPendapatan = $order->sum(function ($row) {
+            return $row->total_harga + $row->biaya_ongkir;
+        });
+        return view('backend.v_pesanan.cetakselesai', [
+            'judul' => 'Laporan',
+            'subJudul' => 'Laporan Pesanan Selesai',
+            'tanggalAwal' => $tanggalAwal,
+            'tanggalAkhir' => $tanggalAkhir,
+            'cetak' => $order,
+            'totalPendapatan' => $totalPendapatan
+        ]);
+    }
+    public function invoiceBackend($id)
+    {
+        $order = Order::findOrFail($id);
+        return view('backend.v_pesanan.invoice', [
+            'judul' => 'Pesanan',
+            'subJudul' => 'Pesanan Proses',
+            'judul' => 'Data Transaksi',
+            'order' => $order,
+        ]);
+    }
+    public function invoiceFrontend($id)
+    {
+        $order = Order::findOrFail($id);
+        return view('backend.v_pesanan.invoice', [
+            'judul' => 'Pesanan',
+            'subJudul' => 'Pesanan Proses',
+            'judul' => 'Data Transaksi',
+            'order' => $order,
+        ]);
     }
 }

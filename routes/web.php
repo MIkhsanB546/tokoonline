@@ -45,6 +45,12 @@ Route::post('backend/laporan/cetakuser', [UserController::class, 'cetakUser'])->
 Route::get('backend/laporan/formproduk', [ProdukController::class, 'formProduk'])->name('backend.laporan.formproduk')->middleware('auth');
 Route::post('backend/laporan/cetakproduk', [ProdukController::class, 'cetakProduk'])->name('backend.laporan.cetakproduk')->middleware('auth');
 
+Route::get('backend/pesanan/proses', [OrderController::class, 'statusProses'])->name('pesanan.proses')->middleware('auth');
+Route::get('backend/pesanan/selesai', [OrderController::class, 'statusSelesai'])->name('pesanan.selesai')->middleware('auth');
+Route::get('backend/pesanan/invoice/{id}', [OrderController::class, 'invoiceBackend'])->name('pesanan.invoice')->middleware('auth');
+Route::get('backend/pesanan/detail/{id}', [OrderController::class, 'statusDetail'])->name('pesanan.detail')->middleware('auth');
+Route::put('backend/pesanan/update/{id}', [OrderController::class, 'statusUpdate'])->name('pesanan.update')->middleware('auth');
+
 // Frontend
 Route::get('/beranda', [BerandaController::class, 'index'])->name('beranda');
 Route::get('/produk/detail/{id}', [ProdukController::class, 'detail'])->name('produk.detail');
@@ -69,8 +75,7 @@ Route::middleware('is.customer')->group(function () {
     Route::post('update-ongkir', [OrderController::class, 'updateOngkir'])->name('order.update-ongkir');
     // pembayaran
     Route::get('select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
-    Route::post('order/complete', [OrderController::class, 'complete'])
-        ->name('order.complete');
+    Route::post('order/complete', [OrderController::class, 'complete'])->name('order.complete');
     Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
 });
 
