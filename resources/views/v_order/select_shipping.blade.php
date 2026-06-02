@@ -1,333 +1,241 @@
 @extends('v_layouts.app')
-
 @section('content')
-    <div class="row">
-        <div class="col-md-12">
+    <!-- CDN Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- CSS: Style untuk Select2 agar responsif -->
+    <style>
+        .select2-container {
+            width: 100% !important;
+        }
 
-            <div class="billing-details">
+        .select2-container .select2-selection--single {
+            height: 40px !important;
+            border: 1px solid #DADADA !important;
+            border-radius: 0px !important;
+            padding: 6px 12px;
+        }
 
-                <div class="section-title">
-                    <h3 class="title">PILIH PENGIRIMAN</h3>
-                </div>
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            line-height: 26px !important;
+            color: #555;
+        }
 
-                @php
-                    $totalBerat = 0;
-
-                    foreach ($order->orderItems as $item) {
-                        $totalBerat += $item->produk->berat * $item->quantity;
-                    }
-                @endphp
-
-                {{-- FORM ONGKIR --}}
-                <div class="row">
-
-                    <div class="col-md-12">
-
-                        {{-- PROVINSI --}}
-                        <div class="form-group">
-                            <label><strong>Provinsi Tujuan:</strong></label>
-
-                            <select name="province" id="province" class="input">
-                                <option value="">-- Pilih Provinsi --</option>
-                            </select>
-                        </div>
-
-                        {{-- KOTA --}}
-                        <div class="form-group">
-                            <label><strong>Kota Tujuan:</strong></label>
-
-                            <select name="city" id="city" class="input">
-                                <option value="">-- Pilih Kota --</option>
-                            </select>
-                        </div>
-
-                        {{-- KURIR --}}
-                        <div class="form-group">
-                            <label><strong>Kurir:</strong></label>
-
-                            <select name="courier" id="courier" class="input">
-                                <option value="">-- Pilih Kurir --</option>
-                                <option value="jne">JNE</option>
-                                <option value="tiki">TIKI</option>
-                                <option value="pos">POS Indonesia</option>
-                            </select>
-                        </div>
-
-                        {{-- ALAMAT --}}
-                        <div class="form-group">
-                            <label><strong>Alamat</strong></label>
-
-                            <textarea name="alamat" id="alamat" rows="4" class="input">{{ auth()->user()->customer->alamat ?? '' }}</textarea>
-                        </div>
-
-                        {{-- KODE POS --}}
-                        <div class="form-group">
-                            <label><strong>Kode Pos</strong></label>
-
-                            <input type="text" name="pos" id="pos" class="input"
-                                value="{{ auth()->user()->customer->pos ?? '' }}">
-                        </div>
-
-                        <input type="hidden" id="total_berat" value="{{ $totalBerat }}">
-
-                        {{-- BUTTON --}}
-                        <div class="form-group">
-                            <button type="button" id="cekOngkir" class="primary-btn">
-                                CEK ONGKIR
-                            </button>
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <br>
-
-                {{-- HASIL ONGKIR --}}
-                <div class="table-responsive">
-
-                    <table class="shopping-cart-table table">
-
-                        <thead>
-                            <tr>
-                                <th>Layanan</th>
-                                <th>Biaya</th>
-                                <th>Estimasi Pengiriman</th>
-                                <th>Total Berat</th>
-                                <th>Total Harga</th>
-                                <th>Bayar</th>
-                            </tr>
-                        </thead>
-
-                        <tbody id="resultOngkir">
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+        }
+    </style>
+    <div class="col-md-12">
+        <div class="order-summary clearfix">
+            <div class="section-title">
+                <p>PENGIRIMAN</p>
+                <h3 class="title">Pilih Pengiriman</h3>
             </div>
-
+            <!-- Select kota asal -->
+            <div class="form-group">
+                <label for="originSelect">Kota Asal:</label><br>
+                <select class="input" id="originSelect" style="width:auto"></select>
+            </div>
+            <input type="hidden" id="kota_asal" name="kota_asal">
+            <!-- Select kota tujuan -->
+            <div class="form-group">
+                <label for="destinationSelect">Kota Tujuan:</label><br>
+                <select class="input" id="destinationSelect" style="width:auto"></select>
+            </div>
+            <input type="hidden" id="kota_tujuan" name="kota_tujuan">
+            <!-- Hidden input: total berat -->
+            <input type="hidden" name="weight" id="weight" value="{{ $totalBerat }}">
+            <!-- Pilih kurir -->
+            <div class="form-group">
+                <label for="kurir">Kurir:</label>
+                <select name="kurir" id="kurir" class="input">
+                    <option value="">Pilih Kurir</option>
+                    <option value="jne">JNE</option>
+                    <option value="tiki">TIKI</option>
+                    <option value="pos">POS Indonesia</option>
+                </select>
+            </div>
+            <!-- Alamat -->
+            <div class="form-group">
+                <label for="alamat">Alamat</label>
+                <textarea class="input" name="alamat" id="alamat">{{ Auth::user()->alamat }}</textarea>
+            </div>
+            <!-- Kode Pos -->
+            <div class="form-group">
+                <label for="kode_pos">Kode Pos</label>
+                <input type="text" class="input" name="kode_pos" id="kode_pos" value="{{ Auth::user()->pos }}">
+            </div>
+            <!-- Tombol cek ongkir -->
+            <button type="button" class="primary-btn" id="checkShipping">Cek Ongkir</button>
+            <!-- Loader (spinner) saat data dikirim -->
+            <div id="loading" style="display: none; text-align: center; margin-top: 20px;">
+                <div class="spinner"></div>
+                <p>Mohon tunggu, sedang memuat ongkir...</p>
+            </div>
+            <!-- Tabel hasil ongkir -->
+            <div id="result">
+                <table class="shopping-cart-table table">
+                    <thead>
+                        <tr>
+                            <th>Layanan</th>
+                            <th>Biaya</th>
+                            <th>Estimasi Pengiriman</th>
+                            <th>Total Berat</th>
+                            <th>Total Harga</th>
+                            <th class="text-center">Bayar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="shippingResults"> <!-- Hasil pencarian muncul di sini -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-
-    {{-- JQuery --}}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-
-    <script>
-        $(document).ready(function() {
-
-            // LOAD PROVINCES
-            $.ajax({
-                url: "{{ url('provinces') }}",
-                type: "GET",
-                dataType: "json",
-
-                success: function(response) {
-
-                    $('#province').html(
-                        '<option value="">-- Pilih Provinsi --</option>'
-                    );
-
-                    $.each(response, function(key, value) {
-
-                        $('#province').append(`
-                            <option value="${value.id}">
-                                ${value.name}
-                            </option>
-                        `);
-
+    @push('scripts')
+        <!-- CDN Select2 JS -->
+        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+        <script>
+            /**
+             * Inisialisasi Select2 dengan AJAX (untuk origin dan destination)
+             */
+            function initSelect2(id, placeholder) {
+                $('#' + id).select2({
+                    width: 'resolve',
+                    placeholder: placeholder,
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: '/ongkir/get-destination',
+                        dataType: 'json',
+                        delay: 500,
+                        data: function(params) {
+                            return {
+                                search: params.term
+                            };
+                        },
+                        processResults: function(data) {
+                            if (data.data) {
+                                const results = data.data.slice(0, 10).map(item => ({
+                                    id: item.id,
+                                    text: item.label + " (" + item.id + ")"
+                                }));
+                                return {
+                                    results
+                                };
+                            } else {
+                                return {
+                                    results: []
+                                };
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error(`Error loading ${id}:`, error);
+                        }
+                    }
+                });
+            }
+            // Inisialisasi Select2
+            initSelect2('originSelect', 'Ketik kecamatan/kota asal...');
+            initSelect2('destinationSelect', 'Ketik kecamatan/kota tujuan...');
+            // Event ketika ada pilihan di originSelect
+            $('#originSelect').on('select2:select', function(e) {
+                // Ambil teks pilihan
+                let selectedText = e.params.data.text;
+                // Set ke input kota_asal
+                $('#kota_asal').val(selectedText);
+            });
+            // Event ketika ada pilihan di destinationSelect
+            $('#destinationSelect').on('select2:select', function(e) {
+                // Ambil teks pilihan
+                let selectedText = e.params.data.text;
+                // Set ke input kota_tujuan
+                $('#kota_tujuan').val(selectedText);
+            });
+            $(document).ready(function() {
+                // Handler klik tombol "Cek Ongkir"
+                $('#checkShipping').click(function() {
+                    // Ambil nilai input
+                    const origin = $('#originSelect').val();
+                    const destination = $('#destinationSelect').val();
+                    const weight = $('#weight').val();
+                    const courier = $('#kurir').val();
+                    const alamat = $('#alamat').val();
+                    const kode_pos = $('#kode_pos').val();
+                    const kota_asal = $('#kota_asal').val();
+                    const kota_tujuan = $('#kota_tujuan').val();
+                    // Validasi: semua field wajib diisi
+                    if (!origin || !destination || !weight || !courier || !alamat || !kode_pos) {
+                        alert("Mohon lengkapi semua field.");
+                        return;
+                    }
+                    // Siapkan data form untuk dikirim ke server
+                    const formData =
+                        `origin=${origin}&destination=${destination}&weight=${weight}&courier=${courier}&price=lowest`;
+                    console.log("Form Data:", formData);
+                    // Tampilkan loader
+                    $('#loading').show();
+                    // Kirim AJAX ke endpoint /ongkir/calculate
+                    $.ajax({
+                        url: '/ongkir/calculate',
+                        method: 'POST',
+                        data: formData,
+                        headers: {
+                            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function(response) {
+                            $('#loading').hide();
+                            console.log("Hasil Ongkir:", response);
+                            let shippingResults = $('#shippingResults');
+                            shippingResults.empty(); // Kosongkan tabel hasil sebelumnya
+                            if (response.data) {
+                                // Tambahkan baris hasil ongkir
+                                response.data.forEach(service => {
+                                    let row = `
+                                                        <tr>
+                                                        <td>${service.service} - ${service.description}</td>
+                                                        <td>Rp${service.cost.toLocaleString()}</td>
+                                                        <td class="text-center">${service.etd}</td>
+                                                        <td>${weight} Gram</td>
+                                                        <td>Rp. {{ number_format($totalHarga, 0, ',', '.') }}</td>
+                                                        <td>
+                                                        <form action="{{ route('order.update-ongkir') }}"
+                                                        method="post">
+                                                        @csrf
+                                                        <input type="hidden" name="kurir"
+                                                        value="${courier}">
+                                                        <input type="hidden" name="alamat"
+                                                        value="${alamat}">
+                                                        <input type="hidden" name="pos"
+                                                        value="${kode_pos}">
+                                                        <input type="hidden" name="layanan_ongkir"
+                                                        value="${service.service}- ${service.description}">
+                                                        <input type="hidden" name="total_berat"
+                                                        value="${weight}">
+                                                        <input type="hidden" name="kota_asal"
+                                                        value="${kota_asal}">
+                                                        <input type="hidden" name="kota_tujuan"
+                                                        value="${kota_tujuan}">
+                                                        <input type="hidden" name="biaya_ongkir"
+                                                        value="${service.cost}">
+                                                        <input type="hidden" name="estimasi_ongkir"
+                                                        value="${service.etd}">
+                                                        <button type="submit" class="primary-btn">Pilih Pengiriman</button>
+                                                        </form>
+                                                        </td>
+                                                        </tr>`;
+                                    shippingResults.append(row);
+                                });
+                            } else {
+                                shippingResults.html("<em>Tidak ada data ongkir ditemukan.</em>");
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            $('#loading').hide();
+                            console.error("Error ongkir:", error);
+                            $('#shippingResults').html(
+                                "<em>Terjadi kesalahan saat mengambil ongkir. < /em>");
+                        }
                     });
-
-                }
-            });
-
-            // GET CITIES
-            $('#province').change(function() {
-
-                let provinceId = $(this).val();
-
-                $('#city').html(
-                    '<option value="">Loading...</option>'
-                );
-
-                $.ajax({
-
-                    url: "/cities/" + provinceId,
-                    type: "GET",
-                    dataType: "json",
-
-                    success: function(response) {
-
-                        $('#city').html(
-                            '<option value="">-- Pilih Kota --</option>'
-                        );
-
-                        $.each(response, function(key, value) {
-
-                            $('#city').append(`
-                                <option value="${value.id}">
-                                    ${value.name}
-                                </option>
-                            `);
-
-                        });
-
-                    }
-
                 });
-
             });
-
-            // CEK ONGKIR
-            $('#cekOngkir').click(function() {
-
-                let origin = 152;
-                let destination = $('#city').val();
-                let courier = $('#courier').val();
-                let weight = $('#total_berat').val();
-
-                if (destination == '' || courier == '') {
-                    alert('Pilih kota dan kurir terlebih dahulu');
-                    return;
-                }
-
-                $.ajax({
-
-                    url: "{{ url('cost') }}",
-                    type: "POST",
-                    dataType: "json",
-
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        origin: origin,
-                        destination: destination,
-                        courier: courier,
-                        weight: weight,
-                    },
-
-                    beforeSend: function() {
-
-                        $('#resultOngkir').html(`
-                            <tr>
-                                <td colspan="6" class="text-center">
-                                    Loading...
-                                </td>
-                            </tr>
-                        `);
-
-                    },
-
-                    success: function(response) {
-
-                        $('#resultOngkir').empty();
-
-                        $.each(response, function(key, value) {
-
-                            $('#resultOngkir').append(`
-
-                                <tr>
-
-                                    <td>
-                                        ${value.service}
-                                    </td>
-
-                                    <td>
-                                        Rp ${new Intl.NumberFormat('id-ID')
-                                            .format(value.cost)}
-                                    </td>
-
-                                    <td>
-                                        ${value.etd}
-                                    </td>
-
-                                    <td>
-                                        ${weight} Gram
-                                    </td>
-
-                                    <td>
-                                        Rp {{ number_format($order->total_harga, 0, ',', '.') }}
-                                    </td>
-
-                                    <td>
-
-                                        <form action="{{ route('order.updateongkir') }}"
-                                            method="POST">
-
-                                            @csrf
-
-                                            <input type="hidden"
-                                                name="kurir"
-                                                value="${courier}">
-
-                                            <input type="hidden"
-                                                name="layanan_ongkir"
-                                                value="${value.service}">
-
-                                            <input type="hidden"
-                                                name="biaya_ongkir"
-                                                value="${value.cost}">
-
-                                            <input type="hidden"
-                                                name="estimasi_ongkir"
-                                                value="${value.etd}">
-
-                                            <input type="hidden"
-                                                name="total_berat"
-                                                value="${weight}">
-
-                                            <input type="hidden"
-                                                name="alamat"
-                                                value="${$('#alamat').val()}">
-
-                                            <input type="hidden"
-                                                name="pos"
-                                                value="${$('#pos').val()}">
-
-                                            <input type="hidden"
-                                                name="city_name"
-                                                value="${$('#city option:selected').text()}">
-
-                                            <input type="hidden"
-                                                name="province_name"
-                                                value="${$('#province option:selected').text()}">
-
-                                            <button type="submit"
-                                                class="primary-btn">
-                                                PILIH PENGIRIMAN
-                                            </button>
-
-                                        </form>
-
-                                    </td>
-
-                                </tr>
-
-                            `);
-
-                        });
-
-                    },
-
-                    error: function(xhr) {
-
-                        console.log(xhr.responseText);
-
-                        $('#resultOngkir').html(`
-                            <tr>
-                                <td colspan="6" class="text-center">
-                                    Gagal mengambil data ongkir
-                                </td>
-                            </tr>
-                        `);
-
-                    }
-
-                });
-
-            });
-
-        });
-    </script>
+        </script>
+    @endpush
 @endsection

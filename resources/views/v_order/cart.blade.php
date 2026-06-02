@@ -82,7 +82,7 @@
                         @endforeach
                     </tbody>
                 </table>
-                <form action="{{ route('order.selectShipping') }}" method="get">
+                <form action="{{ route('order.selectShipping') }}" method="post">
                     @csrf
                     <input type="hidden" name="total_price" value="{{ $totalHarga }}">
                     <input type="hidden" name="total_weight" value="{{ $totalBerat }}">

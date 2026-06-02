@@ -59,22 +59,19 @@ Route::middleware('is.customer')->group(function () {
     // Route untuk mengupdate data akun customer
     Route::put('/customer/updateakun/{id}', [CustomerController::class, 'updateAkun'])
         ->name('customer.updateakun');
-
-    // Route Order
-    Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
+    // Route untuk menambahkan produk ke keranjang
     Route::get('cart', [OrderController::class, 'viewCart'])->name('order.cart');
+    Route::post('add-to-cart/{id}', [OrderController::class, 'addToCart'])->name('order.addToCart');
     Route::post('cart/update/{id}', [OrderController::class, 'updateCart'])->name('order.updateCart');
     Route::post('remove/{id}', [OrderController::class, 'removeFromCart'])->name('order.remove');
-    Route::get('select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
-    Route::post('updateongkir', [OrderController::class, 'updateongkir'])->name('order.updateongkir');
+    // rajaongkir
+    Route::post('select-shipping', [OrderController::class, 'selectShipping'])->name('order.selectShipping');
+    Route::post('update-ongkir', [OrderController::class, 'updateOngkir'])->name('order.update-ongkir');
+    // pembayaran
     Route::get('select-payment', [OrderController::class, 'selectPayment'])->name('order.selectpayment');
+    Route::post('order/complete', [OrderController::class, 'complete'])
+        ->name('order.complete');
     Route::get('history', [OrderController::class, 'orderHistory'])->name('order.history');
-    Route::post('checkout/{id}', [OrderController::class, 'checkout'])->name('order.checkout');
-    // Raja Ongkir
-    Route::get('/provinces', [OrderController::class, 'getProvinces']);
-    Route::get('/cities/{provinceId}', [OrderController::class, 'getCities']);
-    Route::get('/districts/{cityId}', [OrderController::class, 'getDistricts']);
-    Route::post('/cost', [OrderController::class, 'getCost']);
 });
 
 //API Google
